@@ -21,15 +21,46 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.Settings;
 
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 public class DbUtil {
+  public interface AlarmActions {
+    byte ALARM_CREATED = 0;
+    byte ALARM_RINGING = 1;
+    byte ALARM_TURN_OFF_BY_USER = 2;
+    byte ALARM_PUT_ON_SNOOZE_BY_USER = 3;
+    byte ALARM_TURN_OFF_BY_SYSTEM = 4;
+    byte ALARM_DELETED_BY_USER = 5;
+    byte ALARM_DISABLED_BY_USER = 6;
+    byte ALARM_ENABLED_BY_USER = 7;
+    byte ALARM_DELETE_BY_USER = 8;
+    byte ALARM_UPDATED_BY_USER = 9;
+    byte SOME_ERROR_OCCURRED = Byte.MAX_VALUE;
+
+    String[] ALARM_ACTIONS = {
+            "Alarm Created",
+            "Alarm Ringing",
+            "Alarm Turn off by User",
+            "Alarm put on Snooze by User",
+            "Alarm Turn off by System",
+            "Alarm Deleted by User in bulk",
+            "Alarm Disabled by User",
+            "Alarm Enabled by User",
+            "Alarm Deleted by User",
+            "Alarm Updated by User"
+    };
+
+    SimpleDateFormat SIMPLE_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+  }
+
   public static final class Alarm {
     public final int time;
     public final boolean enabled;
     public final String label;
     public final int repeat;
     public final long next_snooze;
+    public final String time_string;
 
     public static Alarm get(Context context, long id) {
       Alarm s = null;
@@ -40,7 +71,8 @@ public class DbUtil {
             AlarmClockProvider.AlarmEntry.ENABLED,
             AlarmClockProvider.AlarmEntry.NAME,
             AlarmClockProvider.AlarmEntry.DAY_OF_WEEK,
-            AlarmClockProvider.AlarmEntry.NEXT_SNOOZE },
+            AlarmClockProvider.AlarmEntry.NEXT_SNOOZE,
+            AlarmClockProvider.AlarmEntry.TIME_STRING },
           null, null, null);
       if (c.moveToFirst())
         s = new Alarm(c);
@@ -57,7 +89,8 @@ public class DbUtil {
                          AlarmClockProvider.AlarmEntry.ENABLED,
                          AlarmClockProvider.AlarmEntry.NAME,
                          AlarmClockProvider.AlarmEntry.DAY_OF_WEEK,
-                         AlarmClockProvider.AlarmEntry.NEXT_SNOOZE },
+                         AlarmClockProvider.AlarmEntry.NEXT_SNOOZE,
+                         AlarmClockProvider.AlarmEntry.TIME_STRING },
           AlarmClockProvider.AlarmEntry.ENABLED + " == 1",
           null, null);
 
@@ -91,6 +124,7 @@ public class DbUtil {
           AlarmClockProvider.AlarmEntry.DAY_OF_WEEK));
       next_snooze = c.getLong(c.getColumnIndex(
           AlarmClockProvider.AlarmEntry.NEXT_SNOOZE));
+      time_string = c.getString(c.getColumnIndex(AlarmClockProvider.AlarmEntry.TIME_STRING));
     }
 
     private Alarm() {
@@ -99,6 +133,7 @@ public class DbUtil {
       label = "Not found";
       repeat = 0;
       next_snooze = 0;
+      time_string = "0000-00-00 00:00:00";
     }
   }
 

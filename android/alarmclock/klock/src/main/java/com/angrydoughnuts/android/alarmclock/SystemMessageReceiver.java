@@ -103,7 +103,8 @@ public class SystemMessageReceiver extends BroadcastReceiver {
           AlarmClockProvider.AlarmEntry._ID,
           AlarmClockProvider.AlarmEntry.TIME,
           AlarmClockProvider.AlarmEntry.DAY_OF_WEEK,
-          AlarmClockProvider.AlarmEntry.NEXT_SNOOZE },
+          AlarmClockProvider.AlarmEntry.NEXT_SNOOZE,
+          AlarmClockProvider.AlarmEntry.TIME_STRING },
         AlarmClockProvider.AlarmEntry.ENABLED + " == 1",
         null, null);
     while (c.moveToNext())

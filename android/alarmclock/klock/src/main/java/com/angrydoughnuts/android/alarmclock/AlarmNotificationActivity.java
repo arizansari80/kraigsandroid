@@ -124,8 +124,12 @@ public class AlarmNotificationActivity extends Activity {
     super.onNewIntent(i);
 
     // A firing alarm has run long enough to trigger a timeout.
-    if (i.hasExtra(TIMEOUT)) {
+    /*if (i.hasExtra(TIMEOUT)) {
       new TimeoutMessage().show(getFragmentManager(), "timeout");
+    }*/
+    if (i.hasExtra(TIMEOUT)) {
+      AlarmNotificationService.handleTimeOutCustomEvent(getApplicationContext());
+      finish();
     }
     // Another alarm triggered before the current one one has been dismissed.
     // This triggers onResume() to redraw.

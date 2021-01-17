@@ -1,9 +1,17 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
   <item android:id="@+id/default_options"
-        android:title="@string/default_options" />
+      android:title="@string/default_options" />
   <item android:id="@+id/display_notification"
-        android:title="@string/display_notification"
-        android:checkable="true" />
+      android:title="@string/display_notification"
+      android:checkable="true" />
   <item android:id="@+id/delete_all"
-        android:title="@string/delete_all" />
+      android:title="@string/delete_all" />
+  <item android:id="@+id/get_two_day_report"
+      android:title="@string/get_two_day_report" />
+  <item android:id="@+id/get_one_week_report"
+      android:title="@string/get_one_week_report" />
+  <item android:id="@+id/get_entire_report"
+      android:title="@string/get_entire_report" />
+  <item android:id="@+id/clean_alarm_analyzer"
+      android:title="@string/clean_alarm_analyzer" />
 </menu>

@@ -1,0 +1,12 @@
+<resources xmlns:app="http://schemas.android.com/apk/res-auto">
+	<style name="labelInfoFontStyle" parent="@android:style/TextAppearance.Small">
+		<item name="android:textSize">14sp</item>
+		<item name="android:textColor">@android:color/white</item>
+	</style>
+
+	<style name="labelFontStyle" parent="@android:style/TextAppearance.Small">
+		<item name="android:textSize">14sp</item>
+		<item name="android:textColor">@android:color/white</item>
+		<item name="android:textStyle">bold</item>
+	</style>
+</resources>

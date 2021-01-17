@@ -27,7 +27,10 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.provider.BaseColumns;
 
-public final class AlarmClockProvider extends ContentProvider {
+import java.util.Calendar;
+import java.util.Date;
+
+public final class AlarmClockProvider extends ContentProvider implements DbUtil.AlarmActions {
   private SQLiteDatabase db = null;
 
   @Override
@@ -61,6 +64,11 @@ public final class AlarmClockProvider extends ContentProvider {
                    null, null, null, null);
       c.setNotificationUri(getContext().getContentResolver(), uri);
       return c;
+    case ALARM_ANALYZE:
+      c = db.query(AlarmAnalyzer.TABLE_NAME, projection, selection, selectionArgs,
+              null, null, sortOrder);
+      c.setNotificationUri(getContext().getContentResolver(), uri);
+      return c;
     default:
       throw new IllegalArgumentException("Unknown URI " + uri);
     }
@@ -74,11 +82,23 @@ public final class AlarmClockProvider extends ContentProvider {
         throw new IllegalArgumentException("Missing time");
       // New alarms are always created enabled, but without a label, repeat,
       // nor optional settings.
+      final Calendar next = TimeUtil.nextOccurrence(values.getAsInteger(AlarmEntry.TIME), 0, 0);
+      String timeStr = TimeUtil.formatLong(getContext(), next);
       values.put(AlarmEntry.ENABLED, true);
       values.put(AlarmEntry.NAME, "");
       values.put(AlarmEntry.DAY_OF_WEEK, 0);
+	  values.put(AlarmEntry.TIME_STRING,timeStr);
       Uri result = ContentUris.withAppendedId(
           ALARMS_URI, db.insertOrThrow(AlarmEntry.TABLE_NAME, null, values));
+      getContext().getContentResolver().notifyChange(uri, null);
+      final long id = ContentUris.parseId(result);
+      ContentValues analyzeVal = new ContentValues();
+      analyzeVal.put(AlarmAnalyzer.ALARM_ID,id);
+      analyzeVal.put(AlarmAnalyzer.TIME,timeStr);
+      analyzeVal.put(AlarmAnalyzer.LABEL,"");
+      analyzeVal.put(AlarmAnalyzer.TIME_OF_EVENT,SIMPLE_DATE_FORMAT.format(new Date()));
+      analyzeVal.put(AlarmAnalyzer.ACTION,DbUtil.AlarmActions.ALARM_ACTIONS[ALARM_CREATED]);
+      db.insertOrThrow(AlarmAnalyzer.TABLE_NAME, null, analyzeVal);
       getContext().getContentResolver().notifyChange(uri, null);
       return result;
     case SETTINGS_ID:
@@ -111,6 +131,14 @@ public final class AlarmClockProvider extends ContentProvider {
       db.insertOrThrow(SettingsEntry.TABLE_NAME, null, values);
       getContext().getContentResolver().notifyChange(uri, null);
       return uri;
+    case ALARM_ANALYZE_ID:
+      if (!values.containsKey(AlarmAnalyzer.ALARM_ID))
+        values.put(AlarmAnalyzer.ALARM_ID,ContentUris.parseId(uri));
+      if (values.size() != 5)
+        throw new IllegalArgumentException("The number of values did not match");
+      Uri result1 = ContentUris.withAppendedId(ALARM_ANALYZE_URI, db.insertOrThrow(AlarmAnalyzer.TABLE_NAME, null, values));
+      getContext().getContentResolver().notifyChange(uri, null);
+      return result1;
     default:
       throw new IllegalArgumentException("Unknown URI " + uri);
     }
@@ -147,6 +175,13 @@ public final class AlarmClockProvider extends ContentProvider {
         insert(uri, values);
       getContext().getContentResolver().notifyChange(uri, null);
       return 1;
+    case ALARM_ANALYZE:
+      count = db.update(
+              AlarmAnalyzer.TABLE_NAME, values,
+              selection, null);
+      if (count > 0)
+        getContext().getContentResolver().notifyChange(uri, null);
+      return count;
     default:
       throw new IllegalArgumentException("Unknown URI " + uri);
     }
@@ -171,6 +206,7 @@ public final class AlarmClockProvider extends ContentProvider {
       alarmid = ContentUris.parseId(uri);
       count = db.delete(
           AlarmEntry.TABLE_NAME, AlarmEntry._ID + " == " + alarmid, null);
+      AlarmNotificationService.updateAlarmAnalyzer(getContext(),alarmid,DbUtil.AlarmActions.ALARM_DELETED_BY_USER);
       // Also delete corresponding entries in the settings table.
       if (count > 0) {
         getContext().getContentResolver().notifyChange(uri, null);
@@ -187,6 +223,14 @@ public final class AlarmClockProvider extends ContentProvider {
       if (count > 0)
         getContext().getContentResolver().notifyChange(uri, null);
       return count;
+    case ALARM_ANALYZE:
+      count = db.delete(AlarmAnalyzer.TABLE_NAME, null, null);
+      getContext().getContentResolver().notifyChange(uri, null);
+      return count;
+    case ALARM_ANALYZE_ID:
+      alarmid = ContentUris.parseId(uri);
+      count = db.delete(AlarmAnalyzer.TABLE_NAME, AlarmAnalyzer.ALARM_ID + " == " + alarmid, null);
+      return count;
     default:
       throw new IllegalArgumentException("Unknown URI " + uri);
     }
@@ -201,6 +245,10 @@ public final class AlarmClockProvider extends ContentProvider {
       return "vnd.android.cursor.item/vnd." + AlarmEntry.TABLE_NAME;
     case SETTINGS_ID:
       return "vnd.android.cursor.item/vnd." + SettingsEntry.TABLE_NAME;
+    case ALARM_ANALYZE:
+      return "vnd.android.cursor.item/vnd." + AlarmAnalyzer.TABLE_NAME;
+    case ALARM_ANALYZE_ID:
+      return "vnd.android.cursor.item/vnd." + AlarmAnalyzer.TABLE_NAME;
     default:
       throw new IllegalArgumentException("Unknown URI " + uri);
     }
@@ -211,11 +259,15 @@ public final class AlarmClockProvider extends ContentProvider {
   private static final int ALARMS = 1;
   private static final int ALARM_ID = 2;
   private static final int SETTINGS_ID = 3;
+  private static final int ALARM_ANALYZE = 4;
+  private static final int ALARM_ANALYZE_ID = 5;
   private static final UriMatcher matcher = new UriMatcher(UriMatcher.NO_MATCH);
   static {
     matcher.addURI(AUTHORITY, AlarmEntry.TABLE_NAME, ALARMS);
     matcher.addURI(AUTHORITY, AlarmEntry.TABLE_NAME + "/#", ALARM_ID);
     matcher.addURI(AUTHORITY, SettingsEntry.TABLE_NAME + "/#", SETTINGS_ID);
+    matcher.addURI(AUTHORITY, AlarmAnalyzer.TABLE_NAME, ALARM_ANALYZE);
+    matcher.addURI(AUTHORITY, AlarmAnalyzer.TABLE_NAME + "/#", ALARM_ANALYZE_ID);
   }
 
   public static final Uri ALARMS_URI = new Uri.Builder()
@@ -228,6 +280,11 @@ public final class AlarmClockProvider extends ContentProvider {
     .authority(AUTHORITY)
     .appendPath(SettingsEntry.TABLE_NAME)
     .build();
+  public static final Uri ALARM_ANALYZE_URI = new Uri.Builder()
+          .scheme(ContentResolver.SCHEME_CONTENT)
+          .authority(AUTHORITY)
+          .appendPath(AlarmAnalyzer.TABLE_NAME)
+          .build();
 
   public static class AlarmEntry implements BaseColumns {
     public static final String TABLE_NAME = "alarms";
@@ -237,6 +294,7 @@ public final class AlarmClockProvider extends ContentProvider {
     public static final String NAME = "name";
     public static final String DAY_OF_WEEK = "dow";
     public static final String NEXT_SNOOZE = "next_snooze";
+    public static final String TIME_STRING = "time_string";
   }
 
   public static class SettingsEntry implements BaseColumns {
@@ -252,9 +310,19 @@ public final class AlarmClockProvider extends ContentProvider {
     public static final String VOLUME_TIME = "vol_time";
   }
 
+  public static class AlarmAnalyzer implements BaseColumns {
+    public static final String TABLE_NAME = "alarm_analyzer";
+
+    public static final String ALARM_ID = "id";
+    public static final String TIME = "time_of_alarm";
+    public static final String LABEL = "label";
+    public static final String TIME_OF_EVENT = "time_of_event";
+    public static final String ACTION = "action_performed";
+  }
+
   private static class DbAlarmClockHelper extends SQLiteOpenHelper {
     private static final String DB_NAME = "alarmclock";
-    private static final int DB_VERSION = 2;
+    private static final int DB_VERSION = 3;
 
     public DbAlarmClockHelper(Context context) {
       super(context, DB_NAME, null, DB_VERSION);
@@ -273,7 +341,8 @@ public final class AlarmClockProvider extends ContentProvider {
           AlarmEntry.ENABLED + " UNSIGNED INTEGER (0, 1)," +
           AlarmEntry.NAME + " TEXT, " +
           AlarmEntry.DAY_OF_WEEK + " UNSIGNED INTEGER (0, 127)," +
-          AlarmEntry.NEXT_SNOOZE + " UNSIGNED INTEGER DEFAULT 0)");
+          AlarmEntry.NEXT_SNOOZE + " UNSIGNED INTEGER DEFAULT 0," +
+          AlarmEntry.TIME_STRING + " TEXT DEFAULT \"\")");
 
       // |(primary) | (string) | (string)  | (1 to 60) | (boolean) | (0 to 100) | (0 to 100) | (0 to 60) |
       // |   id     | tone_url | tone_name |   snooze  |  vibrate  |  vol_start |  vol_end   | vol_time  |
@@ -288,6 +357,14 @@ public final class AlarmClockProvider extends ContentProvider {
           SettingsEntry.VOLUME_STARTING + " UNSIGNED INTEGER (1, 100)," +
           SettingsEntry.VOLUME_ENDING + " UNSIGNED INTEGER (1, 100)," +
           SettingsEntry.VOLUME_TIME + " UNSIGNED INTEGER (1, 60))");
+
+      db.execSQL(
+              "CREATE TABLE " + AlarmAnalyzer.TABLE_NAME + " (" +
+                      AlarmAnalyzer.ALARM_ID + " UNSIGNED INTEGER, " +
+                      AlarmAnalyzer.TIME + " TEXT," +
+                      AlarmAnalyzer.LABEL + " TEXT," +
+                      AlarmAnalyzer.TIME_OF_EVENT + " TEXT," +
+                      AlarmAnalyzer.ACTION + " TEXT)");
     }
 
     @Override
@@ -308,6 +385,19 @@ public final class AlarmClockProvider extends ContentProvider {
             "UPDATE " + SettingsEntry.TABLE_NAME + " SET " +
             SettingsEntry.ALARM_ID + " = " + DbUtil.Settings.DEFAULTS_ID +
             " WHERE " + SettingsEntry.ALARM_ID + " == -1");
+      }
+      // Application version 3.0 added a table for Alarm Activity Analysis
+      if (oldVersion < 3) {
+        db.execSQL(
+                "CREATE TABLE " + AlarmAnalyzer.TABLE_NAME + " (" +
+                        AlarmAnalyzer.ALARM_ID + " UNSIGNED INTEGER, " +
+                        AlarmAnalyzer.TIME + " TEXT," +
+                        AlarmAnalyzer.LABEL + " TEXT," +
+                        AlarmAnalyzer.TIME_OF_EVENT + " TEXT," +
+                        AlarmAnalyzer.ACTION + " TEXT)");
+        db.execSQL(
+                "ALTER TABLE " + AlarmEntry.TABLE_NAME + " ADD COLUMN " +
+                        AlarmEntry.TIME_STRING + " TEXT DEFAULT \"\"");
       }
     }
   }

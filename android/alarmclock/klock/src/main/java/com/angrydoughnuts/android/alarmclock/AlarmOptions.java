@@ -132,6 +132,9 @@ public class AlarmOptions extends android.app.DialogFragment {
           @Override
           public void onClick(DialogInterface dialog, int which) {
             DbUtil.Alarm a = DbUtil.Alarm.get(getContext(), id);
+            ContentValues cv = new ContentValues();
+            cv.put(AlarmClockProvider.AlarmAnalyzer.LABEL,a.label);
+            int n = getContext().getContentResolver().update(AlarmClockProvider.ALARM_ANALYZE_URI,cv, AlarmClockProvider.AlarmAnalyzer.ALARM_ID + "=" + id,null);
             if (a.enabled || !observer.state_changed)
               return;
             // Enable the alarm if the alarm entry changed.
@@ -144,6 +147,7 @@ public class AlarmOptions extends android.app.DialogFragment {
               .getTimeInMillis();
             AlarmNotificationService.scheduleAlarmTrigger(
                 getActivity().getApplicationContext(), id, utc);
+            AlarmNotificationService.updateAlarmAnalyzer(getActivity().getApplicationContext(),id,DbUtil.AlarmActions.ALARM_UPDATED_BY_USER);
           }
         })
       .setNeutralButton(!defaults ? getString(R.string.delete) : null,
@@ -308,6 +312,7 @@ public class AlarmOptions extends android.app.DialogFragment {
       delete_listener =  new DeleteConfirmation.Listener() {
           @Override
           public void onConfirm() {
+            AlarmNotificationService.updateAlarmAnalyzer(getContext(),id,DbUtil.AlarmActions.ALARM_DELETE_BY_USER);
             getContext().getContentResolver().delete(
                 ContentUris.withAppendedId(
                     AlarmClockProvider.ALARMS_URI, id), null, null);

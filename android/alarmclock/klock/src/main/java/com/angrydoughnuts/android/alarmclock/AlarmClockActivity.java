@@ -106,12 +106,14 @@ public class AlarmClockActivity extends Activity {
           if (check) {
             AlarmNotificationService.removeAlarmTrigger(
                 getApplicationContext(), id);
+            AlarmNotificationService.updateAlarmAnalyzer(getApplicationContext(),id,DbUtil.AlarmActions.ALARM_DISABLED_BY_USER);
           } else {
             DbUtil.Alarm a = DbUtil.Alarm.get(getApplicationContext(), id);
             long nextUTC = TimeUtil.nextOccurrence(a.time, a.repeat)
               .getTimeInMillis();
             AlarmNotificationService.scheduleAlarmTrigger(
                 getApplicationContext(), id, nextUTC);
+            AlarmNotificationService.updateAlarmAnalyzer(getApplicationContext(),id,DbUtil.AlarmActions.ALARM_ENABLED_BY_USER);
           }
         }
       });
@@ -277,6 +279,11 @@ public class AlarmClockActivity extends Activity {
         .show(getFragmentManager(), "confirm_delete_all");
 
       return true;
+    case R.id.get_two_day_report: {
+        final Intent intent = new Intent(AlarmClockActivity.this,AlarmReportViewActivity.class);
+        startActivity(intent);
+        return true;
+    }
     default:
       return super.onOptionsItemSelected(item);
     }
@@ -294,24 +301,33 @@ public class AlarmClockActivity extends Activity {
             R.string.ok, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                  // Find all of the enabled alarm ids.
-                  LinkedList<Long> ids = new LinkedList<Long>();
-                  Cursor c = getContext().getContentResolver().query(
-                      AlarmClockProvider.ALARMS_URI,
-                      new String[] { AlarmClockProvider.AlarmEntry._ID },
-                      AlarmClockProvider.AlarmEntry.ENABLED + " == 1",
-                          null, null);
-                  while (c.moveToNext())
-                    ids.add(c.getLong(c.getColumnIndex(
-                        AlarmClockProvider.AlarmEntry._ID)));
-                  c.close();
-                  // Delete the entire alarm table.
-                  getContext().getContentResolver().delete(
-                      AlarmClockProvider.ALARMS_URI, null, null);
-                  // Unschedule any alarms that were active.
-                  for (long id : ids)
-                    AlarmNotificationService.removeAlarmTrigger(
-                        getContext(), id);
+                    // Find all of the enabled alarm ids.
+                    LinkedList<Long> ids = new LinkedList<Long>();
+									/*Cursor c = getContext().getContentResolver().query(
+											AlarmClockProvider.ALARMS_URI,
+											new String[] { AlarmClockProvider.AlarmEntry._ID },
+											AlarmClockProvider.AlarmEntry.ENABLED + " == 1",
+											null, null);*/
+                    Cursor c = getContext().getContentResolver().query(
+                            AlarmClockProvider.ALARMS_URI,
+                            new String[] { AlarmClockProvider.AlarmEntry._ID,  AlarmClockProvider.AlarmEntry.ENABLED},
+                            null,
+                            null, null);
+                    while (c.moveToNext()) {
+                        long id = c.getLong(c.getColumnIndex(AlarmClockProvider.AlarmEntry._ID));
+                        AlarmNotificationService.updateAlarmAnalyzer(getContext(),id,DbUtil.AlarmActions.ALARM_DELETED_BY_USER);
+                        if (c.getInt(c.getColumnIndex(AlarmClockProvider.AlarmEntry.ENABLED)) == 1)
+                            ids.add(c.getLong(c.getColumnIndex(AlarmClockProvider.AlarmEntry._ID)));
+                    }
+                    c.close();
+                    // Delete the entire alarm table.
+									/*int alarmid = 18;
+									Uri uri = ContentUris.withAppendedId(AlarmClockProvider.ALARMS_URI, alarmid);*/
+                    getContext().getContentResolver().delete(AlarmClockProvider.ALARMS_URI, null, null);
+                    // Unschedule any alarms that were active.
+                    for (long id : ids)
+                        AlarmNotificationService.removeAlarmTrigger(
+                                getContext(), id);
                 }
               }).create();
     }

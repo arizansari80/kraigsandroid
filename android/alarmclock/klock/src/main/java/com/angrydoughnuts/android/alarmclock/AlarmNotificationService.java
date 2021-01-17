@@ -26,6 +26,7 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
@@ -44,6 +45,7 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashSet;
 
 public class AlarmNotificationService extends Service {
@@ -130,6 +132,7 @@ public class AlarmNotificationService extends Service {
       if (r < 1) {
         Log.e(TAG, "Failed to dismiss " + alarmid);
       }
+      updateAlarmAnalyzer(c,alarmid,DbUtil.AlarmActions.ALARM_TURN_OFF_BY_USER);
       if (a.repeat != 0) {
         final long nextUTC =
           TimeUtil.nextOccurrence(a.time, a.repeat).getTimeInMillis();
@@ -161,12 +164,28 @@ public class AlarmNotificationService extends Service {
       if (r < 1) {
         Log.e(TAG, "Failed to snooze " + alarmid);
       }
+      updateAlarmAnalyzer(c,alarmid,DbUtil.AlarmActions.ALARM_PUT_ON_SNOOZE_BY_USER);
       scheduleAlarmTrigger(c, alarmid, snoozeUTC);
     }
 
     activeAlarms.alarmids.clear();
     CountdownRefresh.start(c);
     c.stopService(new Intent(c, AlarmNotificationService.class));
+  }
+
+  /**
+   *
+   * NOTE: this context should be the application-level context.
+   */
+  public static void handleTimeOutCustomEvent(Context c) {
+    if (activeAlarms == null) {
+      Log.w(TAG, "No active alarms for Handling Timeout Event");
+      return;
+    }
+
+    for (long alarmid : activeAlarms.alarmids) {
+      updateAlarmAnalyzer(c,alarmid,DbUtil.AlarmActions.ALARM_TURN_OFF_BY_SYSTEM);
+    }
   }
 
   /**
@@ -296,6 +315,42 @@ public class AlarmNotificationService extends Service {
     // https://developer.android.com/guide/components/activities/background-starts
     // The setFullScreenIntent option above handles the lock screen case.
     startActivity(notify);
+  }
+
+  public static void updateAlarmAnalyzer(final Context c, final long alarmid, final int action) {
+    String[] projection = {
+            AlarmClockProvider.AlarmEntry.TIME_STRING,
+            AlarmClockProvider.AlarmEntry.NAME
+    };
+    Cursor c1 = c.getContentResolver().query(AlarmClockProvider.ALARMS_URI, projection, AlarmClockProvider.AlarmEntry._ID + "=" + alarmid, null, null);
+    while (c1.moveToNext()) {
+      ContentValues cv = new ContentValues();
+      cv.put(AlarmClockProvider.AlarmAnalyzer.ALARM_ID, alarmid);
+      cv.put(AlarmClockProvider.AlarmAnalyzer.TIME, c1.getString(c1.getColumnIndex(AlarmClockProvider.AlarmEntry.TIME_STRING)));
+      cv.put(AlarmClockProvider.AlarmAnalyzer.LABEL, c1.getString(c1.getColumnIndex(AlarmClockProvider.AlarmEntry.NAME)));
+      cv.put(AlarmClockProvider.AlarmAnalyzer.TIME_OF_EVENT, DbUtil.AlarmActions.SIMPLE_DATE_FORMAT.format(new Date()));
+      cv.put(AlarmClockProvider.AlarmAnalyzer.ACTION, DbUtil.AlarmActions.ALARM_ACTIONS[action]);
+      Uri uri = c.getContentResolver().insert(ContentUris.withAppendedId(AlarmClockProvider.ALARM_ANALYZE_URI, alarmid), cv);
+      System.out.println(uri);
+    }
+  }
+
+  public static void updateAlarmAnalyzer(final Context c, final long alarmid, final String action) {
+    String[] projection = {
+            AlarmClockProvider.AlarmEntry.TIME_STRING,
+            AlarmClockProvider.AlarmEntry.NAME
+    };
+    Cursor c1 = c.getContentResolver().query(AlarmClockProvider.ALARMS_URI, projection, AlarmClockProvider.AlarmEntry._ID + "=" + alarmid, null, null);
+    while (c1.moveToNext()) {
+      ContentValues cv = new ContentValues();
+      cv.put(AlarmClockProvider.AlarmAnalyzer.ALARM_ID, alarmid);
+      cv.put(AlarmClockProvider.AlarmAnalyzer.TIME, c1.getString(c1.getColumnIndex(AlarmClockProvider.AlarmEntry.TIME_STRING)));
+      cv.put(AlarmClockProvider.AlarmAnalyzer.LABEL, c1.getString(c1.getColumnIndex(AlarmClockProvider.AlarmEntry.NAME)));
+      cv.put(AlarmClockProvider.AlarmAnalyzer.TIME_OF_EVENT, DbUtil.AlarmActions.SIMPLE_DATE_FORMAT.format(new Date()));
+      cv.put(AlarmClockProvider.AlarmAnalyzer.ACTION, action);
+      Uri uri = c.getContentResolver().insert(ContentUris.withAppendedId(AlarmClockProvider.ALARM_ANALYZE_URI, alarmid), cv);
+      System.out.println(uri);
+    }
   }
 
   private static final String TAG =
@@ -446,7 +501,7 @@ public class AlarmNotificationService extends Service {
     }
   }
 
-  public static class AlarmTriggerReceiver extends BroadcastReceiver {
+  public static class AlarmTriggerReceiver extends BroadcastReceiver implements DbUtil.AlarmActions {
     public static final String WAKELOCK_ID = "wakelock_id";
     private static final ArrayMap<Integer, PowerManager.WakeLock> locks =
       new ArrayMap<Integer, PowerManager.WakeLock>();
@@ -468,7 +523,7 @@ public class AlarmNotificationService extends Service {
       w.acquire();
       locks.put(nextid, w);
       Log.i(TAG, "Acquired lock " + nextid + " for alarm " + alarmid);
-
+      updateAlarmAnalyzer(c,alarmid,ALARM_RINGING);
       Intent alarm = new Intent(c, AlarmNotificationService.class)
         .putExtra(ALARM_ID, alarmid)
         .putExtra(WAKELOCK_ID, nextid++);

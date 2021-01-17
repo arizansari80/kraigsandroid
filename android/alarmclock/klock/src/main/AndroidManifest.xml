@@ -25,6 +25,11 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+    <activity
+        android:name=".AlarmReportViewActivity"
+        android:theme="@android:style/Theme.Material"
+        android:exported="false" >
+    </activity>
     <service
         android:name=".AlarmNotificationService"
         android:exported="false"
