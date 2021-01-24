@@ -329,7 +329,7 @@ public class AlarmNotificationService extends Service {
       cv.put(AlarmClockProvider.AlarmAnalyzer.TIME, c1.getString(c1.getColumnIndex(AlarmClockProvider.AlarmEntry.TIME_STRING)));
       cv.put(AlarmClockProvider.AlarmAnalyzer.LABEL, c1.getString(c1.getColumnIndex(AlarmClockProvider.AlarmEntry.NAME)));
       cv.put(AlarmClockProvider.AlarmAnalyzer.TIME_OF_EVENT, DbUtil.AlarmActions.SIMPLE_DATE_FORMAT.format(new Date()));
-      cv.put(AlarmClockProvider.AlarmAnalyzer.ACTION, DbUtil.AlarmActions.ALARM_ACTIONS[action]);
+      cv.put(AlarmClockProvider.AlarmAnalyzer.ACTION, c.getString(DbUtil.AlarmActions.ALARM_ACTIONS[action]));
       Uri uri = c.getContentResolver().insert(ContentUris.withAppendedId(AlarmClockProvider.ALARM_ANALYZE_URI, alarmid), cv);
       System.out.println(uri);
     }

@@ -8,10 +8,10 @@
       android:title="@string/delete_all" />
   <item android:id="@+id/get_two_day_report"
       android:title="@string/get_two_day_report" />
-  <item android:id="@+id/get_one_week_report"
-      android:title="@string/get_one_week_report" />
-  <item android:id="@+id/get_entire_report"
-      android:title="@string/get_entire_report" />
+<!--  <item android:id="@+id/get_one_week_report"-->
+<!--      android:title="@string/get_one_week_report" />-->
+<!--  <item android:id="@+id/get_entire_report"-->
+<!--      android:title="@string/get_entire_report" />-->
   <item android:id="@+id/clean_alarm_analyzer"
       android:title="@string/clean_alarm_analyzer" />
 </menu>

@@ -97,7 +97,7 @@ public final class AlarmClockProvider extends ContentProvider implements DbUtil.
       analyzeVal.put(AlarmAnalyzer.TIME,timeStr);
       analyzeVal.put(AlarmAnalyzer.LABEL,"");
       analyzeVal.put(AlarmAnalyzer.TIME_OF_EVENT,SIMPLE_DATE_FORMAT.format(new Date()));
-      analyzeVal.put(AlarmAnalyzer.ACTION,DbUtil.AlarmActions.ALARM_ACTIONS[ALARM_CREATED]);
+      analyzeVal.put(AlarmAnalyzer.ACTION,getContext().getString(DbUtil.AlarmActions.ALARM_ACTIONS[ALARM_CREATED]));
       db.insertOrThrow(AlarmAnalyzer.TABLE_NAME, null, analyzeVal);
       getContext().getContentResolver().notifyChange(uri, null);
       return result;

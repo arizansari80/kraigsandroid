@@ -38,17 +38,17 @@ public class DbUtil {
     byte ALARM_UPDATED_BY_USER = 9;
     byte SOME_ERROR_OCCURRED = Byte.MAX_VALUE;
 
-    String[] ALARM_ACTIONS = {
-            "Alarm Created",
-            "Alarm Ringing",
-            "Alarm Turn off by User",
-            "Alarm put on Snooze by User",
-            "Alarm Turn off by System",
-            "Alarm Deleted by User in bulk",
-            "Alarm Disabled by User",
-            "Alarm Enabled by User",
-            "Alarm Deleted by User",
-            "Alarm Updated by User"
+    int[] ALARM_ACTIONS = {
+            R.string.alarm_analyze_alarm_created_message,
+            R.string.alarm_analyze_alarm_ringing_message,
+            R.string.alarm_analyze_alarm_turn_off_by_user_message,
+            R.string.alarm_analyze_alarm_put_on_snooze_by_user_message,
+            R.string.alarm_analyze_alarm_turn_off_by_system_message,
+            R.string.alarm_analyze_alarm_deleted_by_user_in_bulk_message,
+            R.string.alarm_analyze_alarm_disabled_by_user_message,
+            R.string.alarm_analyze_alarm_enabled_by_user_message,
+            R.string.alarm_analyze_alarm_deleted_by_user_message,
+            R.string.alarm_analyze_alarm_updated_by_user_message
     };
 
     SimpleDateFormat SIMPLE_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

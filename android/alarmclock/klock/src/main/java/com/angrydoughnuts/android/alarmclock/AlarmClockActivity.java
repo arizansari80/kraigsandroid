@@ -277,13 +277,16 @@ public class AlarmClockActivity extends Activity {
     case R.id.delete_all:
       new DeleteAllConfirmation()
         .show(getFragmentManager(), "confirm_delete_all");
-
       return true;
     case R.id.get_two_day_report: {
         final Intent intent = new Intent(AlarmClockActivity.this,AlarmReportViewActivity.class);
         startActivity(intent);
         return true;
     }
+    case R.id.clean_alarm_analyzer:
+        new ClearAlarmAnalyzer()
+                .show(getFragmentManager(), "confirm_clear_alarm_analyze");
+        return true;
     default:
       return super.onOptionsItemSelected(item);
     }
@@ -332,4 +335,22 @@ public class AlarmClockActivity extends Activity {
               }).create();
     }
   }
+
+    @SuppressWarnings("deprecation")  // DialogFragment
+    public static class ClearAlarmAnalyzer extends android.app.DialogFragment {
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            return new AlertDialog.Builder(getContext())
+                    .setTitle(R.string.delete)
+                    .setMessage(R.string.clear_alarm_analyzer)
+                    .setNegativeButton(R.string.cancel, null)
+                    .setPositiveButton(
+                            R.string.ok, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    getContext().getContentResolver().delete(AlarmClockProvider.ALARM_ANALYZE_URI, null, null);
+                                }
+                            }).create();
+        }
+    }
 }

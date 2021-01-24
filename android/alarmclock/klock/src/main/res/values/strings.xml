@@ -64,4 +64,22 @@
   <string name="time_out_error">WARNING: This alarm has timed out waiting for an acknowledgment.</string>
   <string name="pending_alarm_notification">Pending alarms</string>
   <string name="ringing_alarm_notification">Ringing alarms</string>
+
+  <!-- Alarm Analysis Section -->
+  <string name="alarm_analyze_alarm_time_caption">Alarm Time</string>
+  <string name="alarm_analyze_alarm_label_caption">Alarm Label</string>
+  <string name="alarm_analyze_action_time_caption">Action Time</string>
+  <string name="alarm_analyze_action_taken_caption">Action Taken</string>
+  <string name="alarm_analyze_alarm_created_message">Alarm Created</string>
+  <string name="alarm_analyze_alarm_ringing_message">Alarm Ringing</string>
+  <string name="alarm_analyze_alarm_turn_off_by_user_message">Alarm Turn off by User</string>
+  <string name="alarm_analyze_alarm_put_on_snooze_by_user_message">Alarm put on Snooze by User</string>
+  <string name="alarm_analyze_alarm_turn_off_by_system_message">Alarm Turn off by System</string>
+  <string name="alarm_analyze_alarm_deleted_by_user_in_bulk_message">Alarm Deleted by User in bulk</string>
+  <string name="alarm_analyze_alarm_disabled_by_user_message">Alarm Disabled by User</string>
+  <string name="alarm_analyze_alarm_enabled_by_user_message">Alarm Enabled by User</string>
+  <string name="alarm_analyze_alarm_deleted_by_user_message">Alarm Deleted by User</string>
+  <string name="alarm_analyze_alarm_updated_by_user_message">Alarm Updated by User</string>
+
+  <string name="clear_alarm_analyzer">Are you sure you want to clear alarm analysis report?</string>
 </resources>
